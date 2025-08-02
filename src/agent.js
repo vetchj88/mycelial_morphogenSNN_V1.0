@@ -9,7 +9,8 @@ export class Agent {
     this.reward = 0.0;
     this.totalReward = 0;
     this.stepCount = 0;
-    
+    this.needsReset = false; // Flag to signal a reset is needed
+
     this.movementHistory = [];
     this.maxHistoryLength = 100;
 
@@ -61,7 +62,7 @@ export class Agent {
     this.createVisionSystem();
     
     // DEBUG: Log initial position
-    console.log('🤖 Agent created at position:', this.body.position);
+    console.log('､�Agent created at position:', this.body.position);
   }
 
   // --- Reset method with better positioning ---
@@ -87,7 +88,7 @@ resetPosition() {
     // ADDED: Force immediate physics sync
     this.body.aabb.setFromPoints([this.body.position]);
     
-    console.log("💥 Agent reset to starting position:", {
+    console.log("徴 Agent reset to starting position:", {
         x: this.body.position.x,
         y: this.body.position.y, 
         z: this.body.position.z
@@ -191,7 +192,7 @@ resetPosition() {
     
     // DEBUG: Log motor commands
     if (left > 0 || right > 0) {
-      console.log(`🏃 Motor commands - Left: ${left.toFixed(2)}, Right: ${right.toFixed(2)}`);
+      console.log(`純 Motor commands - Left: ${left.toFixed(2)}, Right: ${right.toFixed(2)}`);
     }
 
     // FIXED: Improved motor control with proper scaling
@@ -212,7 +213,7 @@ resetPosition() {
       this.body.force.set(forceVector.x, 0, forceVector.z);
       
       // DEBUG: Log applied forces
-      console.log(`⚡ Applied force: ${forceVector.x.toFixed(1)}, ${forceVector.z.toFixed(1)}`);
+      console.log(`笞｡ Applied force: ${forceVector.x.toFixed(1)}, ${forceVector.z.toFixed(1)}`);
     }
     
     // Apply turning torque
@@ -220,7 +221,7 @@ resetPosition() {
       this.body.torque.set(0, turningTorque, 0);
       
       // DEBUG: Log applied torque
-      console.log(`🌀 Applied torque: ${turningTorque.toFixed(1)}`);
+      console.log(`劇 Applied torque: ${turningTorque.toFixed(1)}`);
     }
     
     // Ensure body stays awake
@@ -230,7 +231,7 @@ resetPosition() {
     if (this.stepCount % 50 === 0) {
       const vel = this.body.velocity;
       const speed = Math.sqrt(vel.x * vel.x + vel.z * vel.z);
-      console.log(`📊 Step ${this.stepCount}: Speed: ${speed.toFixed(2)}, Pos: (${this.body.position.x.toFixed(1)}, ${this.body.position.z.toFixed(1)})`);
+      console.log(`投 Step ${this.stepCount}: Speed: ${speed.toFixed(2)}, Pos: (${this.body.position.x.toFixed(1)}, ${this.body.position.z.toFixed(1)})`);
     }
     
     this.stepCount++;

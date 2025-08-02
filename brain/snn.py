@@ -324,3 +324,32 @@ class MorphogenicSNN:
             'step_count': int(self.step_count),
             'newly_grown_neuron': self.newly_grown_neuron
         }
+
+    def get_synapse_data(self):
+        """
+        Extracts synapse data for visualization.
+        Returns a list of dictionaries, each representing a synapse.
+        """
+        if not hasattr(self.synapses, 'i') or len(self.synapses.i) == 0:
+            return [] # No synapses yet
+            
+        synapse_list = []
+        # Limiting the number of synapses sent to avoid performance issues
+        limit = 2000 
+        
+        # If there are fewer synapses than the limit, take all of them
+        if len(self.synapses.i) <= limit:
+            indices_to_send = range(len(self.synapses.i))
+        else:
+            # If there are more, take a random sample
+            indices_to_send = np.random.choice(len(self.synapses.i), limit, replace=False)
+
+        for idx in indices_to_send:
+            synapse_info = {
+                'pre': int(self.synapses.i[idx]),
+                'post': int(self.synapses.j[idx]),
+                'weight': float(self.synapses.w[idx])
+            }
+            synapse_list.append(synapse_info)
+            
+        return synapse_list

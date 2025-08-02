@@ -161,13 +161,13 @@ function updateStatusPanel(currentAgent, sensoryData, brainOutput) {
         let sensesText = 'Nothing';
         if (sensoryData.sees) {
             const dist = isFinite(sensoryData.distance) ? sensoryData.distance.toFixed(1) : 'far';
-            sensesText = `RED (Center, dist: ${dist})`;
+            sensesText = `${sensoryData.sees.toUpperCase()} (Center, dist: ${dist})`;
         } else if (sensoryData.sees_left) {
             const dist = isFinite(sensoryData.distance_left) ? sensoryData.distance_left.toFixed(1) : 'far';
-            sensesText = `RED (Left, dist: ${dist})`;
+            sensesText = `${sensoryData.sees_left.toUpperCase()} (Left, dist: ${dist})`;
         } else if (sensoryData.sees_right) {
             const dist = isFinite(sensoryData.distance_right) ? sensoryData.distance_right.toFixed(1) : 'far';
-            sensesText = `RED (Right, dist: ${dist})`;
+            sensesText = `${sensoryData.sees_right.toUpperCase()} (Right, dist: ${dist})`;
         } else if (sensoryData.sees_wall) {
             const dist = isFinite(sensoryData.wall_distance) ? sensoryData.wall_distance.toFixed(1) : 'far';
             sensesText = `WALL (dist: ${dist})`;
@@ -248,18 +248,21 @@ function calculateReward(sensoryData, lastSensoryData) {
     if (!sensoryData || !lastSensoryData) return 0;
     
     let reward = -0.002; // Cost of living
-    const isSeeingTarget = sensoryData.sees === 'red' || sensoryData.sees_left === 'red' || sensoryData.sees_right === 'red';
+    const isSeeingRed = sensoryData.sees === 'red' || sensoryData.sees_left === 'red' || sensoryData.sees_right === 'red';
+    const isSeeingBlue = sensoryData.sees === 'blue' || sensoryData.sees_left === 'blue' || sensoryData.sees_right === 'blue';
     const isMoving = Math.sqrt(sensoryData.velocity.x**2 + sensoryData.velocity.z**2) > 0.1;
 
-    if (isSeeingTarget) {
-        reward += 0.01; // Vision bonus
+    if (isSeeingRed) {
+        reward += 0.01; // Vision bonus for correct target
         const currentDistance = sensoryData.distance !== Infinity ? sensoryData.distance : (sensoryData.distance_left !== Infinity ? sensoryData.distance_left : sensoryData.distance_right);
         const lastDistance = lastSensoryData.distance !== Infinity ? lastSensoryData.distance : (lastSensoryData.distance_left !== Infinity ? lastSensoryData.distance_left : lastSensoryData.distance_right);
-        if (currentDistance < lastDistance) reward += 0.2;
+        if (currentDistance < lastDistance) reward += 0.2; // Reward for getting closer
+    } else if (isSeeingBlue) {
+        reward -= 0.1; // Penalty for looking at the wrong target
     } else {
         const isTurning = Math.abs(sensoryData.angular_velocity) > 0.2;
-        if (isTurning) reward += 0.1;
-        if (isMoving && !isTurning) reward -= 0.2;
+        if (isTurning) reward += 0.1; // Reward for exploring
+        if (isMoving && !isTurning) reward -= 0.2; // Penalty for moving aimlessly
     }
 
     if (sensoryData.sees_wall && sensoryData.wall_distance < 1.0) {
@@ -288,7 +291,7 @@ agent.body.addEventListener('collide', (event) => {
             position: { x: agent.body.position.x, z: agent.body.position.z },
             reward: 5.0 
         });
-        agent.resetPosition();
+        agent.needsReset = true; // Use deferred reset for all collisions
         console.log('🎯 Agent hit RED button! Reward: +5.0');
     } 
     else if (userData?.id === 'button_blue') { 
@@ -298,7 +301,8 @@ agent.body.addEventListener('collide', (event) => {
             reward: -1.0,
             type: 'blue_button'
         });
-        console.log('❌ Agent hit BLUE button! Penalty: -1.0');
+        agent.needsReset = true; // Use deferred reset for all collisions
+        console.log('❌ Agent hit BLUE button! Penalty: -1.0, resetting position.');
     } 
     else if (userData?.id === 'wall') { 
         agent.reward = -2.0;
@@ -306,7 +310,7 @@ agent.body.addEventListener('collide', (event) => {
             position: { x: agent.body.position.x, z: agent.body.position.z },
             reward: -2.0 
         });
-        agent.resetPosition();
+        agent.needsReset = true; // Use deferred reset for all collisions
         console.log('💥 Agent hit wall! Penalty: -2.0, resetting position');
     }
 });
@@ -326,6 +330,21 @@ performanceTracker.milestoneDefinitions.forEach(milestone => {
 // --- 5. MAIN SIMULATION LOOP ---
 function animate() {
   requestAnimationFrame(animate);
+
+  // --- NEW: Handle deferred reset for all collisions ---
+  if (agent.needsReset) {
+    // Clear forces and velocities before resetting position to prevent physics glitches
+    agent.body.velocity.set(0, 0, 0);
+    agent.body.angularVelocity.set(0, 0, 0);
+    agent.body.force.set(0, 0, 0);
+    agent.body.torque.set(0, 0, 0);
+    
+    agent.resetPosition();
+    agent.needsReset = false;
+    
+    // Skip the rest of the loop for this frame to ensure a clean reset
+    return;
+  }
   
   try {
     const deltaTime = clock.getDelta();
